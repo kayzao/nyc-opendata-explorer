@@ -1,0 +1,19 @@
+services:
+  db:
+    image: postgis/postgis:16-3.4 # PostGIS image based on PostgreSQL 16 with PostGIS 3.4
+    container_name: nyc311-db
+    ports: ["5432:5432"] # since postgres uses 5432 by default
+    environment:
+      POSTGRES_USER: appuser # Database user
+      POSTGRES_PASSWORD: appsecret # Database password (do NOT use in production)
+      POSTGRES_DB: nyc311 # Default database name
+    volumes:
+      - pgdata:/var/lib/postgresql/data # Persist database data, named pgdata, mapped to container path
+    healthcheck: # Health check to ensure PostgreSQL is ready
+      test: ["CMD-SHELL", "pg_isready -U appuser -d nyc311"]
+      interval: 3s
+      timeout: 3s
+      retries: 10
+
+volumes: # Declare named volume for PostgreSQL data persistence
+  pgdata:
