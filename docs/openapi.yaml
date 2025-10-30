@@ -73,7 +73,8 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/RequestsPage' }
               examples:
-                example:
+                manhattan_last7days_page1:
+                  summary: First page in a small Manhattan bbox (limit 3)
                   value:
                     items:
                       - service_request_number: "12345678"
@@ -84,7 +85,36 @@ paths:
                         borough: "MANHATTAN"
                         latitude: 40.7112
                         longitude: -73.9901
-                    next_token: "eyJwYWdlIjoyfQ=="
+                      - service_request_number: "12345679"
+                        created_date: "2025-10-23T14:45:10Z"
+                        closed_date: null
+                        complaint_type: "Illegal Parking"
+                        descriptor: "Blocked Hydrant"
+                        borough: "MANHATTAN"
+                        latitude: 40.7107
+                        longitude: -73.9893
+                      - service_request_number: "12345680"
+                        created_date: "2025-10-23T15:01:22Z"
+                        closed_date: "2025-10-24T06:18:00Z"
+                        complaint_type: "Noise - Commercial"
+                        descriptor: "Loud Talking"
+                        borough: "MANHATTAN"
+                        latitude: 40.7121
+                        longitude: -73.9897
+                    next_token: "eyJjZCI6IjIwMjUtMTAtMjNUMTU6MDE6MjJaIiwiaWQiOiIxMjM0NTY4MCJ9"
+                manhattan_last7days_page2:
+                  summary: Second page (end of results)
+                  value:
+                    items:
+                      - service_request_number: "12345681"
+                        created_date: "2025-10-23T15:12:45Z"
+                        closed_date: null
+                        complaint_type: "Street Condition"
+                        descriptor: "Pothole"
+                        borough: "MANHATTAN"
+                        latitude: 40.7119
+                        longitude: -73.9895
+                    next_token: null
         '400':
           description: Bad request (invalid parameters or guardrail violation)
           content:
@@ -92,9 +122,11 @@ paths:
               schema: { $ref: '#/components/schemas/Error' }
               examples:
                 invalid_bbox:
-                  value: { error: "INVALID_BBOX", message: "Bounding box area exceeds allowed maximum." }
-                date_range:
+                  value: { error: "INVALID_BBOX", message: "Bounding box area exceeds allowed maximum.", details: { maxAreaDeg2: 1.0 } }
+                date_range_too_large:
                   value: { error: "DATE_RANGE_TOO_LARGE", message: "date_to - date_from must be ≤ 90 days." }
+                limit_too_large:
+                  value: { error: "LIMIT_TOO_LARGE", message: "limit must be ≤ 100." }
         '429':
           description: Too Many Requests (rate limited)
           content:
@@ -105,6 +137,9 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
+              examples:
+                rate_limited:
+                  value: { error: "RATE_LIMITED", message: "Too many requests. Please retry later." }
 
   /api/311/stats:
     get:
@@ -139,16 +174,33 @@ paths:
               schema: { $ref: '#/components/schemas/StatsResponse' }
               examples:
                 by_type:
+                  summary: Grouped by complaint type
                   value:
                     group_by: "complaint_type"
                     rows:
                       - { key: "Noise - Residential", count: 1243 }
                       - { key: "Illegal Parking", count: 842 }
+                      - { key: "Noise - Commercial", count: 312 }
+                by_day:
+                  summary: Grouped by day (UTC)
+                  value:
+                    group_by: "day"
+                    rows:
+                      - { key: "2025-10-22", count: 185 }
+                      - { key: "2025-10-23", count: 201 }
+                      - { key: "2025-10-24", count: 178 }
+                      - { key: "2025-10-25", count: 162 }
+                      - { key: "2025-10-26", count: 144 }
+                      - { key: "2025-10-27", count: 171 }
+                      - { key: "2025-10-28", count: 190 }
         '400':
           description: Bad request
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
+              examples:
+                invalid_group_by:
+                  value: { error: "INVALID_GROUP_BY", message: "group_by must be complaint_type, borough, or day" }
         '429':
           description: Too Many Requests (rate limited)
           content:
