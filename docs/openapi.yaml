@@ -15,10 +15,12 @@ externalDocs:
   url: https://docs.google.com/document/d/1AR3J0ytSMK1kDMYB8B1TtX35P-QR-cxcNCOXCtHx-zU/edit?usp=sharing
   # NOTE: External docs can be any public URL (design docs, FAQ, etc.).
 
+# Base URL for API calls
 servers:
   - url: https://api.example.com   # replace in deploys
     # TIP: Consider adding a "stage" variable or multiple servers (staging, prod).
 
+# Group operations by tag for better organization in generated docs.
 tags:
   - name: Health
     description: Health operations for API
@@ -26,6 +28,7 @@ tags:
   - name: Stats
     # TIP: Tags help group operations in generated docs.
 
+# Define available API paths and operations
 paths:
   /healthz:
     summary: Health operations for API
