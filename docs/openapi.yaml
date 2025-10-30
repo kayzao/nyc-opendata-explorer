@@ -6,6 +6,9 @@ info:
   description: |
     Read-only API for NYC 311 requests stored in PostgreSQL/PostGIS.
     Guardrails: max date window 90 days, max limit 100, bbox area capped, pagination via next_token.
+    
+  # NOTE: The text above explains global behavior. Concrete, machine-readable limits are echoed
+  # below in the custom x-guardrails block to help your UI/tests stay in sync.
 
 externalDocs:
   description: More info about this API
@@ -128,6 +131,9 @@ paths:
       responses:
         '200':
           description: Aggregated stats
+          headers:
+            Cache-Control:
+              schema: { type: string } # e.g., "public, max-age=120"
           content:
             application/json:
               schema: { $ref: '#/components/schemas/StatsResponse' }
@@ -143,6 +149,21 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
+        '429':
+          description: Too Many Requests (rate limited)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
+x-guardrails:
+  maxDateWindowDays: 90       # Enforce in code and document here for clients
+  maxLimit: 100               # Upper bound for "limit"
+  maxBboxAreaDeg2: 1.0        # Approx area guardrail in degrees^2 (min/max lon/lat product)
 
 components:
   parameters:
@@ -219,6 +240,11 @@ components:
     # One single service request (one row/item)
     Request:
       type: object
+      additionalProperties: false
+      required:
+        - service_request_number
+        - created_date
+        - complaint_type
       properties:
         service_request_number: { type: string }
         created_date: { type: string, format: date-time }
@@ -228,11 +254,12 @@ components:
         borough: { type: string, nullable: true }
         latitude: { type: number, format: double, nullable: true }
         longitude: { type: number, format: double, nullable: true }
-      # TIP: Add "additionalProperties: false" if you want to forbid extra fields.
-      # TIP: Add "required" if certain fields must always be present.
+      # TIP: Add more fields as your DB schema stabilizes (e.g., normalized complaint type codes).
+
     # Paginated page of results, containing array of Request and next token for the next page
     RequestsPage:
       type: object
+      additionalProperties: false
       required: [items]
       properties:
         items:
@@ -242,27 +269,40 @@ components:
           type: string
           nullable: true
       # NOTE: When "next_token" is null/omitted, there are no more pages.
+
     # Single row in a stats table, keyed by group
     StatRow:
       type: object
+      additionalProperties: false
+      required: [key, count]
       properties:
         key: { type: string }
-        count: { type: integer }
-      # TIP: Add "minimum: 0" to count if negative counts are impossible.
+        count:
+          type: integer
+          minimum: 0  # ADDED: counts cannot be negative
+
     # Stats result set
     StatsResponse:
       type: object
+      additionalProperties: false
       required: [group_by, rows]
       properties:
-        group_by: { type: string } # e.g., "borough" | "complaint_type" | "day"
+        group_by:
+          type: string
+          enum: [borough, complaint_type, day]  # ADDED: enumerate valid values for stronger contract
         rows:
           type: array
           items: { $ref: '#/components/schemas/StatRow' }
-      # TIP: Consider enum on group_by if it's strictly limited.
+      # TIP: Returning an empty "rows" array is OK when no data matches filters.
+
     Error:
       type: object
+      additionalProperties: false
       required: [error, message]
       properties:
         error: { type: string, description: 'Short code (e.g., INVALID_BBOX)' }
         message: { type: string, description: 'Human-readable explanation' }
-      # TIP: Add optional "details" (object/array) for field-level validation errors.
+        details:
+          type: object
+          additionalProperties: true
+  
