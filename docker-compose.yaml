@@ -2,7 +2,8 @@ services:
   db:
     image: postgis/postgis:16-3.4 # PostGIS image based on PostgreSQL 16 with PostGIS 3.4
     container_name: nyc311-db
-    ports: ["5432:5432"] # since postgres uses 5432 by default
+    # ports mapping should only be used for local development or debugging
+    # ports: ["5432:5432"]
     environment:
       POSTGRES_USER: appuser # Database user
       POSTGRES_PASSWORD: appsecret # Database password (do NOT use in production)
