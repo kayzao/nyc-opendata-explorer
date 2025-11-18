@@ -1,25 +1,10 @@
 NYC OpenData Explorer
 
-A serverless, containerized web app that visualizes NYC 311 service requests on a map with filters and analytics.
-Backend is FastAPI on AWS Lambda (container) behind API Gateway, data is in PostgreSQL + PostGIS on Amazon RDS (via RDS Proxy), nightly ingestion pulls from Socrata via EventBridge → Lambda, static frontend is on S3 + CloudFront with ACM TLS. The stack is production-shaped, low-cost at hobby traffic, and showcases modern AWS practices.
+A web app that visualizes NYC 311 service requests on a map with filters and analytics.
 
-🔗 How to Access the Final Version
+Backend is Spring Boot (Gradle) on AWS EC2 behind an Application Load Balancer; data is in PostgreSQL + PostGIS on Amazon RDS; nightly ingestion pulls from Socrata via a cron job on EC2; static frontend is on S3 + CloudFront with ACM TLS.
 
-Web App (Frontend): https://YOUR-CLOUDFRONT-DOMAIN
-
-Global HTTPS via CloudFront; assets served from S3.
-
-API (HTTP): https://YOUR-API-GATEWAY-DOMAIN
-
-OpenAPI docs available at /docs (disabled or protected in prod).
-
-Data Snapshots: s3://YOUR-SNAPSHOT-BUCKET/year=YYYY/month=MM/day=DD/
-
-CSV/Parquet partitions written nightly by the ingestion job.
-
-Replace placeholders with your deployed values (see Outputs in your IaC deploy or CloudFormation/CloudFront consoles).
-
-✨ What This Project Does (Summary)
+What This Project Does (Summary)
 
 Query & visualize NYC 311 requests with filters: date range, borough, complaint type, and map bounding box.
 
