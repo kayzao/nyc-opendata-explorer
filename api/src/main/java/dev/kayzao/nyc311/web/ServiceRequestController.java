@@ -1,7 +1,7 @@
 package dev.kayzao.nyc311.web;
 
 import dev.kayzao.nyc311.model.ServiceRequest;
-import dev.kayzao.nyc311.repo.ServiceRequestRepo;
+import dev.kayzao.nyc311.service.ServiceRequestService;
 import org.locationtech.jts.geom.Point;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
@@ -22,10 +22,10 @@ import java.util.Map;
 @RequestMapping("/requests")
 public class ServiceRequestController {
 
-    private final ServiceRequestRepo repo;
+    private final ServiceRequestService service;
 
-    public ServiceRequestController(ServiceRequestRepo repo) {
-        this.repo = repo;
+    public ServiceRequestController(ServiceRequestService service) {
+        this.service = service;
     }
 
     /* GET /requests */
@@ -34,8 +34,6 @@ public class ServiceRequestController {
             @RequestParam(defaultValue = "100") int limit,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime since,
             @RequestParam(required = false) String bbox) {
-        // Clamp limit to [1, 100] to enforce guardrail
-        int clampedLimit = Math.min(Math.max(limit, 1), 100);
 
         // ---- Parse bbox (if present) ----
         boolean hasBbox = false;
@@ -44,7 +42,6 @@ public class ServiceRequestController {
         if (bbox != null && !bbox.isBlank()) {
             String[] parts = bbox.split(",");
             if (parts.length != 4) {
-                // Note: Map.of is safe here because neither key nor value is null
                 return ResponseEntity.badRequest().body(Map.of(
                         "error", "bbox must be 'minLon,minLat,maxLon,maxLat'"));
             }
@@ -73,19 +70,10 @@ public class ServiceRequestController {
             hasBbox = true;
         }
 
-        boolean hasSince = (since != null);
-
-        // ---- Choose which query to run based on since/bbox ----
-        List<ServiceRequest> rows;
-        if (!hasSince && !hasBbox) {
-            rows = repo.searchPlain(clampedLimit);
-        } else if (hasSince && !hasBbox) {
-            rows = repo.searchSince(clampedLimit, since);
-        } else if (!hasSince && hasBbox) {
-            rows = repo.searchBbox(clampedLimit, minLon, minLat, maxLon, maxLat);
-        } else { // hasSince && hasBbox
-            rows = repo.searchSinceBbox(clampedLimit, since, minLon, minLat, maxLon, maxLat);
-        }
+        // ---- Delegate to service for business logic / DB access ----
+        List<ServiceRequest> rows = service.searchRequests(
+                limit, since, hasBbox, minLon, minLat, maxLon, maxLat
+        );
 
         // ---- Map entities to JSON-friendly structures ----
         List<Map<String, Object>> items = new ArrayList<>();
