@@ -21,76 +21,56 @@ For any changes in code, stop the bootRun, and rerun `./gradlew bootRun`.
 
 ## Architecture:
 
-Frontend: React + Leaflet, built with Vite → S3 → CloudFront (ACM TLS)
-
-API: FastAPI → Lambda (container) with Lambda Web Adapter → API Gateway (HTTP API)
-
-DB: RDS PostgreSQL + PostGIS, reached through RDS Proxy
-
-Ingestion: EventBridge (schedule) → Lambda (public subnet) → Socrata → UPSERT to Postgres + snapshot to S3
-
-Networking: API Lambda in private subnets (no NAT); VPC Endpoints for S3/Secrets/Logs; ingestion Lambda in public subnet for internet egress (no DB SG access)
-
-Ops: CloudWatch logs/metrics/dashboards/alarms, X-Ray traces, optional WAF
-
-🧰 Tech Stack
-
-Languages: Python, SQL, TypeScript/JavaScript
-Backend: FastAPI, SQLAlchemy/psycopg, (optional) Pandas, Alembic
-Frontend: React, Leaflet.js, Vite
-AWS: Lambda (container), API Gateway (HTTP API), RDS Postgres + PostGIS, RDS Proxy, S3, CloudFront, ACM, EventBridge, SQS (DLQ), Secrets Manager, SSM Parameter Store, CloudWatch, X-Ray, VPC (subnets, endpoints), Route 53 (optional)
-Infra/CI: AWS CDK or Terraform, Docker + ECR, GitHub Actions (OIDC)
-
-🗂 Repo Structure (suggested)
-.
-├─ docs/
-│  ├─ architecture-v1.md
-│  └─ openapi.yaml
-├─ db/
-│  └─ schema.sql
-├─ infra/             # CDK or Terraform
-│  ├─ cdk.json / main.tf
-│  └─ lib/ or modules/
-├─ api/
-│  ├─ app/            # FastAPI app
-│  ├─ Dockerfile
-│  └─ requirements.txt / pyproject.toml
-├─ ingestor/
-│  ├─ handler/        # ingestion Lambda
-│  ├─ Dockerfile
-│  └─ requirements.txt / pyproject.toml
-├─ web/
-│  ├─ src/
-│  ├─ index.html
-│  └─ package.json
-└─ README.md
-
-⚡ Quick Start (Local, No AWS Required Yet)
-
-You can run through Day 1–2 locally to validate shape.
-
-Clone
-
-git clone https://github.com/YOUR-USER/nyc-opendata-explorer.git
-cd nyc-opendata-explorer
+- **Backend:** Spring Boot 3 (Java 21, Gradle) running in Docker on **AWS EC2**, optionally behind an Application Load Balancer  
+- **Database:** PostgreSQL + PostGIS on **Amazon RDS**  
+- **Frontend:** React + Leaflet, built with Vite and hosted on **S3 + CloudFront** (ACM TLS)  
+- **Ingestion:** Nightly job on EC2 that pulls from NYC OpenData (Socrata) and upserts into RDS  
 
 
-Backend (local dev)
+## Tech Stack
 
-cd api
-python -m venv .venv && source .venv/bin/activate  # Windows: .venv\Scripts\activate
-pip install -r requirements.txt
-uvicorn app.main:app --reload
-# API at http://127.0.0.1:8000 , docs at /docs
+**Languages**
 
+- Java 21 (backend)
+- TypeScript / JavaScript (frontend)
+- SQL (PostgreSQL/PostGIS)
 
-Frontend (local dev)
+**Backend**
 
-cd web
-npm install
-npm run dev
-# Visit the local Vite URL it prints (e.g., http://127.0.0.1:5173)
+- Spring Boot 3
+- Gradle (build tool)
+- springdoc OpenAPI (auto-generated API docs)
+- Flyway (database migrations)
+- Hibernate + PostGIS via `hibernate-spatial`
+- AWS SDK (Secrets Manager, etc.)
 
+**Database**
+
+- PostgreSQL 16 + PostGIS (RDS in AWS, Postgres container locally)
+
+**Frontend**
+
+- React
+- Leaflet.js
+- Vite
+
+**AWS (planned / in progress)**
+
+- EC2 (Dockerized Spring Boot app)
+- RDS Postgres + PostGIS
+- S3 + CloudFront (static frontend)
+- ACM (TLS certs)
+- CloudWatch (logs/metrics)
+- Secrets Manager (DB credentials)
+- Route 53 (optional custom domain)
+## Local Development
+
+### Prerequisites
+
+- Docker Desktop
+- Java 21 (or just use the Gradle toolchain)
+- Node.js 20+ (for the frontend)
+- Git
 
 For Dockerized local runs, build the api/ and ingestor/ images and run them with docker run binding ports as needed.
 
