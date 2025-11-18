@@ -1,0 +1,37 @@
+version: "3.9"
+
+services:
+  db:
+    image: postgis/postgis:16-3.4
+    container_name: nyc311-db
+    environment:
+      POSTGRES_USER: appuser
+      POSTGRES_PASSWORD: appsecret          # change for real prod
+      POSTGRES_DB: nyc311
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U appuser -d nyc311"]
+      interval: 3s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped                 # auto-restart on crash/reboot
+
+  backend:
+    container_name: nyc311-backend
+    # Backend image built locally & pushed to ECR
+    image: 272117125371.dkr.ecr.us-east-2.amazonaws.com/nyc311-backend:latest
+    depends_on:
+      db:
+        condition: service_healthy          # wait for DB to be ready
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/nyc311
+      SPRING_DATASOURCE_USERNAME: appuser
+      SPRING_DATASOURCE_PASSWORD: appsecret
+      SPRING_PROFILES_ACTIVE: prod
+    ports:
+      - "8080:8080"                         # http://<EC2-IP>:8080/requests
+    restart: unless-stopped
+
+volumes:
+  pgdata:

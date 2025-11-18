@@ -1,0 +1,35 @@
+version: "3.9"
+
+services:
+  db:
+    image: postgis/postgis:16-3.4
+    container_name: nyc311-db-dev
+    environment:
+      POSTGRES_USER: appuser
+      POSTGRES_PASSWORD: appsecret     # dev only, change for prod
+      POSTGRES_DB: nyc311
+    ports:
+      - "5432:5432"                    # expose DB to your host for local tools
+    volumes:
+      - pgdata_dev:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U appuser -d nyc311"]
+      interval: 3s
+      timeout: 3s
+      retries: 10
+
+  backend:
+    container_name: nyc311-backend-dev
+    build: .                            # build from local Dockerfile
+    depends_on:
+      - db
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/nyc311
+      SPRING_DATASOURCE_USERNAME: appuser
+      SPRING_DATASOURCE_PASSWORD: appsecret
+      SPRING_PROFILES_ACTIVE: dev
+    ports:
+      - "8080:8080"                     # http://localhost:8080/requests
+
+volumes:
+  pgdata_dev:

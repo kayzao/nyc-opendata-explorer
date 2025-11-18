@@ -4,10 +4,10 @@ A web app that visualizes NYC 311 service requests on a map with filters and ana
 
 Backend is Spring Boot (Gradle) on AWS EC2 behind an Application Load Balancer; data is in PostgreSQL + PostGIS on Amazon RDS; nightly ingestion pulls from Socrata via a cron job on EC2; static frontend is on S3 + CloudFront with ACM TLS.
 
-## STARTUP
+## STARTUP (local)
 
 1) Start Docker Desktop
-2) From the repo root, run: `docker compose up -d` to start the containers
+2) From the repo root, run: `docker-compose -f docker-compose.dev.yml up --build` to start the containers
 3) From the /api folder, run: `./gradlew bootRun` to compile the API code and start the Spring Boot app, which binds to port 8080.
 4) To check if its running, go to `http://localhost:8080/actuator/health` in a new terminal
 
