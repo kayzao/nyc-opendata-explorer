@@ -8,19 +8,53 @@ import org.springframework.data.repository.query.Param;
 
 public interface ServiceRequestRepo extends JpaRepository<ServiceRequest, Long> {
 
+    // no bbox, no since
     @Query(value = """
-              SELECT * FROM service_requests
-               WHERE (:since IS NULL OR created_at >= :since)
-                 AND (:hasBbox = false OR ST_Contains(
-                      ST_MakeEnvelope(:minLon, :minLat, :maxLon, :maxLat, 4326),
-                      geom))
-               ORDER BY created_at DESC, id DESC
-               LIMIT :limit
-            """, nativeQuery = true)
-    List<ServiceRequest> search(
-            @Param("limit") int limit,
-            @Param("since") OffsetDateTime since,
-            @Param("hasBbox") boolean hasBbox,
-            @Param("minLon") Double minLon, @Param("minLat") Double minLat,
-            @Param("maxLon") Double maxLon, @Param("maxLat") Double maxLat);
+        SELECT * FROM service_requests
+         ORDER BY created_at DESC, id DESC
+         LIMIT :limit
+    """, nativeQuery = true)
+    List<ServiceRequest> searchPlain(
+        @Param("limit") int limit);
+
+    // since only
+    @Query(value = """
+        SELECT * FROM service_requests
+         WHERE created_at >= :since
+         ORDER BY created_at DESC, id DESC
+         LIMIT :limit
+    """, nativeQuery = true)
+    List<ServiceRequest> searchSince(
+        @Param("limit") int limit,
+        @Param("since") OffsetDateTime since);
+
+    // bbox only
+    @Query(value = """
+        SELECT * FROM service_requests
+         WHERE ST_Contains(
+                ST_MakeEnvelope(:minLon, :minLat, :maxLon, :maxLat, 4326),
+                geom)
+         ORDER BY created_at DESC, id DESC
+         LIMIT :limit
+    """, nativeQuery = true)
+    List<ServiceRequest> searchBbox(
+        @Param("limit") int limit,
+        @Param("minLon") double minLon, @Param("minLat") double minLat,
+        @Param("maxLon") double maxLon, @Param("maxLat") double maxLat);
+
+    // since + bbox
+    @Query(value = """
+        SELECT * FROM service_requests
+         WHERE created_at >= :since
+           AND ST_Contains(
+                ST_MakeEnvelope(:minLon, :minLat, :maxLon, :maxLat, 4326),
+                geom)
+         ORDER BY created_at DESC, id DESC
+         LIMIT :limit
+    """, nativeQuery = true)
+    List<ServiceRequest> searchSinceBbox(
+        @Param("limit") int limit,
+        @Param("since") OffsetDateTime since,
+        @Param("minLon") double minLon, @Param("minLat") double minLat,
+        @Param("maxLon") double maxLon, @Param("maxLat") double maxLat);
 }
