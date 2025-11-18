@@ -1,0 +1,50 @@
+plugins {
+	id 'java'
+	id 'org.springframework.boot' version '3.5.7'
+	id 'io.spring.dependency-management' version '1.1.7'
+}
+
+group = 'dev.kayzao'
+version = '0.0.1-SNAPSHOT'
+description = 'Demo project for Spring Boot'
+
+java {
+	toolchain {
+		languageVersion = JavaLanguageVersion.of(21)
+	}
+}
+
+repositories {
+	mavenCentral()
+}
+
+dependencies {
+	// Spring Boot Starters
+	implementation 'org.springframework.boot:spring-boot-starter-actuator' // Monitoring and management
+	implementation 'org.springframework.boot:spring-boot-starter-data-jpa' // JPA and Hibernate
+	implementation 'org.springframework.boot:spring-boot-starter-web' // REST, embedded Tomcat
+	
+	// Flyway for database migrations
+	implementation 'org.flywaydb:flyway-core'
+	implementation 'org.flywaydb:flyway-database-postgresql'
+
+	// PostGIS and spatial support
+    implementation "org.hibernate.orm:hibernate-spatial" // Hibernate + spatial types
+    implementation "org.locationtech.jts:jts-core" // Geometry types (Point, etc.)
+
+	// OpenAPI for API documentation
+    implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.6.0")
+
+	// AWS SDK for Secrets Manager
+	implementation(platform("software.amazon.awssdk:bom:2.25.0"))
+    implementation("software.amazon.awssdk:secretsmanager")
+
+	// PostgreSQL JDBC Driver
+	runtimeOnly 'org.postgresql:postgresql'
+	testImplementation 'org.springframework.boot:spring-boot-starter-test'
+	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+tasks.named('test') {
+	useJUnitPlatform()
+}

@@ -1,0 +1,24 @@
+server:
+  port: 8080           # app listens on http://localhost:8080
+
+spring:
+  application:
+    name: nyc311-api
+  datasource:
+    url: jdbc:postgresql://localhost:5432/nyc311   # matches your Docker PostGIS
+    username: appuser                             # POSTGRES_USER from docker-compose
+    password: appsecret                           # POSTGRES_PASSWORD
+  jpa:
+    hibernate:
+      ddl-auto: validate                          # don't auto-alter schema; just validate
+    properties:
+      hibernate:
+        dialect: org.hibernate.spatial.dialect.postgis.PostgisPG10Dialect
+  flyway:
+    enabled: true                                 # run db/migration scripts at startup
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info                      # expose /actuator/health and /actuator/info
