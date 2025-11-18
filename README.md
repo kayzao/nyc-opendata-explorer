@@ -1,20 +1,25 @@
-NYC OpenData Explorer
+# NYC OpenData Explorer
 
 A web app that visualizes NYC 311 service requests on a map with filters and analytics.
 
 Backend is Spring Boot (Gradle) on AWS EC2 behind an Application Load Balancer; data is in PostgreSQL + PostGIS on Amazon RDS; nightly ingestion pulls from Socrata via a cron job on EC2; static frontend is on S3 + CloudFront with ACM TLS.
 
-What This Project Does (Summary)
+## STARTUP
 
-Query & visualize NYC 311 requests with filters: date range, borough, complaint type, and map bounding box.
+1) Start Docker Desktop
+2) From the repo root, run: `docker compose up -d` to start the containers
+3) From the /api folder, run: `./gradlew bootRun` to compile the API code and start the Spring Boot app, which binds to port 8080.
+4) To check if its running, go to `http://localhost:8080/actuator/health` in a new terminal
 
-Fast, indexed spatial queries using PostGIS; pagination and guardrails to keep queries snappy.
+For any changes in code, stop the bootRun, and rerun `./gradlew bootRun`.
 
-Nightly ingestion pulls the latest records from NYC OpenData (Socrata), UPSERTs into Postgres, and writes raw snapshots to S3.
+## SHUTDOWN
 
-Production hygiene: CloudWatch dashboards/alarms, X-Ray tracing, Secrets Manager, least-privilege IAM, CI/CD, and IaC.
+1) Stop the bootRun
+2) From the repo root, run: `docker compose stop`, to stop the containers but keep the volumes and data, or `docker compose down -v` to delete all data as well.
 
-🏗 Architecture (High Level)
+
+## Architecture:
 
 Frontend: React + Leaflet, built with Vite → S3 → CloudFront (ACM TLS)
 
