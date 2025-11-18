@@ -6,6 +6,11 @@ import java.util.List;
 import org.springframework.data.jpa.repository.*;
 import org.springframework.data.repository.query.Param;
 
+/*
+ * Repository interface for accessing ServiceRequest entities.
+ * Provides methods to search service requests with optional filters for bounding box and creation time.
+ */
+
 public interface ServiceRequestRepo extends JpaRepository<ServiceRequest, Long> {
 
     // no bbox, no since

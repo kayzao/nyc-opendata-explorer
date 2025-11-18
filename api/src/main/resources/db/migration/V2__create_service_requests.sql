@@ -1,3 +1,5 @@
+-- Second action: Create the service_requests table to store 311 data
+
 CREATE TABLE IF NOT EXISTS service_requests (
   id BIGSERIAL PRIMARY KEY,
   external_id TEXT UNIQUE NOT NULL,

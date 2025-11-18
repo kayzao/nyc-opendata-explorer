@@ -1,3 +1,7 @@
+# This file contains configuration settings for the Spring Boot application.
+# datasource settings point to the PostGIS database in Docker.
+# Adjust username/password as needed to match your Docker setup.
+# flyway is enabled to run DB migration scripts at startup.
 server:
   port: 8080           # app listens on http://localhost:8080
 

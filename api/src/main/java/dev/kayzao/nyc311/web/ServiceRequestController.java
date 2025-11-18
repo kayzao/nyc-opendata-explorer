@@ -13,6 +13,11 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+/*
+ * REST controller for handling requests to the /requests endpoint.
+ * Supports optional filtering by bounding box and creation time.
+ * Returns a JSON response with a list of service requests.
+ */
 @RestController
 @RequestMapping("/requests")
 public class ServiceRequestController {
@@ -23,6 +28,7 @@ public class ServiceRequestController {
         this.repo = repo;
     }
 
+    /* GET /requests */
     @GetMapping
     public ResponseEntity<Map<String, Object>> list(
             @RequestParam(defaultValue = "100") int limit,

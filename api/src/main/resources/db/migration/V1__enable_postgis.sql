@@ -1,2 +1,2 @@
--- Enable the PostGIS extension (per database)
+-- First action: Enable the PostGIS extension (per database)
 CREATE EXTENSION IF NOT EXISTS postgis;
