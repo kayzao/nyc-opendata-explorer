@@ -1,0 +1,86 @@
+version: "3.9"
+
+services:
+  portainer:
+    image: portainer/portainer-ce:2.20.0
+    container_name: portainer
+    command: -H unix:///var/run/docker.sock
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - portainer_data:/data
+    restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.portainer.rule=Host(`portainer.kayzao.dev`)"
+      - "traefik.http.routers.portainer.entrypoints=websecure"
+      - "traefik.http.routers.portainer.tls=true"
+      - "traefik.http.routers.portainer.tls.certresolver=letsencrypt"
+      - "traefik.http.services.portainer.loadbalancer.server.port=9000"
+  traefik:
+    image: traefik:v3.0
+    container_name: traefik
+    command:
+      - --providers.docker=true
+      - --providers.docker.exposedbydefault=false
+      - --entrypoints.web.address=:80
+      - --entrypoints.websecure.address=:443
+      - --certificatesresolvers.letsencrypt.acme.httpchallenge=true
+      - --certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web
+      - --certificatesresolvers.letsencrypt.acme.email=kelvinzhao29@gmail.com   # <-- change this
+      - --certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json
+      - --log.level=INFO
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./letsencrypt:/letsencrypt
+    restart: unless-stopped
+
+  db:
+    image: postgis/postgis:16-3.4
+    container_name: nyc311-db
+    environment:
+      POSTGRES_USER: appuser
+      POSTGRES_PASSWORD: Foot8857
+      POSTGRES_DB: nyc311
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U appuser -d nyc311"]
+      interval: 3s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped # auto-restart on crash/reboot
+
+  backend:
+    container_name: nyc311-backend
+    # Backend image built locally & pushed to ECR
+    image: 272117125371.dkr.ecr.us-east-2.amazonaws.com/nyc311-backend:latest
+    depends_on:
+      db:
+        condition: service_healthy          # wait for DB to be ready
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/nyc311
+      SPRING_DATASOURCE_USERNAME: appuser
+      SPRING_DATASOURCE_PASSWORD: Foot8857
+      SPRING_PROFILES_ACTIVE: prod
+        # ports:
+      #  - "8080:8080"                         # http://<EC2-IP>:8080/requests
+    restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.nyc311.rule=Host(`kayzao.dev`)"
+      - "traefik.http.routers.nyc311.entrypoints=websecure"
+      - "traefik.http.routers.nyc311.tls=true"
+      - "traefik.http.routers.nyc311.tls.certresolver=letsencrypt"
+      - "traefik.http.services.nyc311.loadbalancer.server.port=8080"
+      # optional: redirect HTTP->HTTPS
+      - "traefik.http.routers.nyc311-http.rule=Host(`kayzao.dev`)"
+      - "traefik.http.routers.nyc311-http.entrypoints=web"
+      - "traefik.http.routers.nyc311-http.middlewares=redirect-to-https"
+      - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
+
+volumes:
+  pgdata:
+  portainer_data:
