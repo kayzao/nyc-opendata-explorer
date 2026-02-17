@@ -1,0 +1,15 @@
+# OS / editor files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Java / Gradle build artifacts
+api/.gradle/
+api/build/
+api/target/
+*.class
+
+# Logs and local env files
+*.log
+.env
