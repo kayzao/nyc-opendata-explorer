@@ -16,7 +16,7 @@ public interface ServiceRequestRepo extends JpaRepository<ServiceRequest, Long> 
     // no bbox, no since
     @Query(value = """
         SELECT * FROM service_requests
-         ORDER BY created_at DESC, id DESC
+         ORDER BY created_date DESC, id DESC
          LIMIT :limit
     """, nativeQuery = true)
     List<ServiceRequest> searchPlain(
@@ -25,8 +25,8 @@ public interface ServiceRequestRepo extends JpaRepository<ServiceRequest, Long> 
     // since only
     @Query(value = """
         SELECT * FROM service_requests
-         WHERE created_at >= :since
-         ORDER BY created_at DESC, id DESC
+         WHERE created_date >= :since
+         ORDER BY created_date DESC, id DESC
          LIMIT :limit
     """, nativeQuery = true)
     List<ServiceRequest> searchSince(
@@ -39,7 +39,7 @@ public interface ServiceRequestRepo extends JpaRepository<ServiceRequest, Long> 
          WHERE ST_Contains(
                 ST_MakeEnvelope(:minLon, :minLat, :maxLon, :maxLat, 4326),
                 geom)
-         ORDER BY created_at DESC, id DESC
+         ORDER BY created_date DESC, id DESC
          LIMIT :limit
     """, nativeQuery = true)
     List<ServiceRequest> searchBbox(
@@ -50,11 +50,11 @@ public interface ServiceRequestRepo extends JpaRepository<ServiceRequest, Long> 
     // since + bbox
     @Query(value = """
         SELECT * FROM service_requests
-         WHERE created_at >= :since
+         WHERE created_date >= :since
            AND ST_Contains(
                 ST_MakeEnvelope(:minLon, :minLat, :maxLon, :maxLat, 4326),
                 geom)
-         ORDER BY created_at DESC, id DESC
+         ORDER BY created_date DESC, id DESC
          LIMIT :limit
     """, nativeQuery = true)
     List<ServiceRequest> searchSinceBbox(

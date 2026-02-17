@@ -28,7 +28,7 @@ services:
       SPRING_DATASOURCE_PASSWORD: appsecret
       SPRING_PROFILES_ACTIVE: prod
     ports:
-      - "8080:8080"                         # http://<EC2-IP>:8080/requests
+      - "8080:8080"                         # http://<EC2-IP>:8080/api/311
     restart: unless-stopped
 
 volumes:

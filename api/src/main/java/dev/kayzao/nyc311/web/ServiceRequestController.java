@@ -14,12 +14,12 @@ import java.util.List;
 import java.util.Map;
 
 /*
- * REST controller for handling requests to the /requests endpoint.
+ * REST controller for handling requests to the /api/311 endpoint.
  * Supports optional filtering by bounding box and creation time.
  * Returns a JSON response with a list of service requests.
  */
 @RestController
-@RequestMapping("/requests")
+@RequestMapping("/api/311")
 public class ServiceRequestController {
 
     private final ServiceRequestService service;
@@ -28,7 +28,7 @@ public class ServiceRequestController {
         this.service = service;
     }
 
-    /* GET /requests */
+    /* GET /api/311 */
     @GetMapping
     public ResponseEntity<Map<String, Object>> list(
             @RequestParam(defaultValue = "100") int limit,
@@ -81,23 +81,25 @@ public class ServiceRequestController {
         for (ServiceRequest r : rows) {
             Map<String, Object> item = new LinkedHashMap<>();
 
-            item.put("external_id", r.getExternalId());
-            item.put("created_at", r.getCreatedAt());
+            item.put("service_request_number", r.getServiceRequestNumber());
+            item.put("created_date", r.getCreatedDate());
+            item.put("closed_date", r.getClosedDate());
             item.put("status", r.getStatus());
             item.put("agency", r.getAgency());
             item.put("complaint_type", r.getComplaintType());
             item.put("descriptor", r.getDescriptor());
+            item.put("borough", r.getBorough());
+
+            Double latitude = r.getLatitude();
+            Double longitude = r.getLongitude();
 
             Point pt = r.getGeom();
-            if (pt != null) {
-                Map<String, Object> location = new LinkedHashMap<>();
-                location.put("lon", pt.getX());
-                location.put("lat", pt.getY());
-                item.put("location", location);
-            } else {
-                // Explicitly store null if geometry is missing
-                item.put("location", null);
+            if (pt != null && (latitude == null || longitude == null)) {
+                longitude = pt.getX();
+                latitude = pt.getY();
             }
+            item.put("latitude", latitude);
+            item.put("longitude", longitude);
 
             items.add(item);
         }

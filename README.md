@@ -95,6 +95,7 @@ Run API + DB both as containers.
 All commands below run from repo root.
 
 1. Start full backend:
+   - `docker compose -f docker-compose.prod.yaml build backend`
    - `docker compose -f docker-compose.prod.yaml up -d`
 2. View logs:
    - `docker compose -f docker-compose.prod.yaml logs -f backend`
@@ -116,3 +117,20 @@ All commands below run from repo root.
 ## API docs
 
 - OpenAPI spec: `docs/openapi.yaml`
+- Swagger UI (when app is running): `http://localhost:8080/swagger-ui/index.html`
+- OpenAPI JSON (when app is running): `http://localhost:8080/v3/api-docs`
+
+## Implemented endpoints
+
+- `GET /api/311`
+- `GET /actuator/health`
+
+`GET /api/311` returns NYC 311-shaped fields:
+- `service_request_number`
+- `created_date`
+- `closed_date`
+- `complaint_type`
+- `descriptor`
+- `borough`
+- `latitude`
+- `longitude`

@@ -1,25 +1,21 @@
-# Architecture v1 (MVP)
+# Architecture v1 (Current)
 
 ## Components
-- **Frontend**: React app hosted on S3, served via CloudFront with ACM TLS.
-- **API**: FastAPI app running in AWS Lambda (container) behind API Gateway (HTTP API).
-- **Database**: Amazon RDS for PostgreSQL with PostGIS, accessed through RDS Proxy.
-- **Storage**: Amazon S3 for static site and nightly raw snapshots (CSV/Parquet).
-- **Ingestion**: EventBridge (scheduler) → Lambda (public subnet) → Socrata → Postgres + S3.
-- **Observability**: CloudWatch (logs/metrics/alarms), X-Ray (traces).
-- **Secrets & State**: Secrets Manager (DB creds), Parameter Store (high-water mark).
-- **Networking**:
-  - API Lambda in **private subnets** (no public internet), with **VPC endpoints** (S3, Secrets, Logs).
-  - Ingestion Lambda in **public subnet** (internet egress to Socrata), **no DB security group access**.
+- Frontend: React app hosted on S3 and served via CloudFront.
+- API: Spring Boot service (Java 21) running as a Docker container on EC2.
+- Database: PostgreSQL with PostGIS (RDS in AWS, PostGIS container for local development).
+- Ingestion: Scheduled job that pulls NYC OpenData (Socrata) and upserts into Postgres.
+- Observability: Spring Boot Actuator + CloudWatch in AWS deployments.
 
-## Simple Flow
-User (browser) → CloudFront → (S3 for frontend)  
-Frontend → API Gateway → Lambda (private subnet) → RDS Proxy → RDS Postgres(PostGIS)
+## Local Development Flow
+Browser/Client -> `http://localhost:8080/api/311`
 
-Nightly: EventBridge → Lambda (public subnet) → Socrata → (UPSERT) RDS + (snapshot) S3
+API (host via Gradle) -> Dockerized PostGIS (`localhost:5432`)
 
-## Guardrails
-- Max date window per request: 90 days
-- Max page size: 100
-- Bbox area capped (WGS84 / SRID 4326)
-- API Gateway throttling; optional caching for hot GETs
+## Production-like Local Flow
+Browser/Client -> API container (`localhost:8080`) -> DB container (`db:5432`)
+
+## Guardrails Implemented
+- Request limit is clamped to 1..100
+- Bounding box format and coordinate ranges are validated
+- Optional `since` filter on `created_date`

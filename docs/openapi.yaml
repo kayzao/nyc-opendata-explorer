@@ -2,362 +2,128 @@ openapi: 3.1.0
 
 info:
   title: NYC OpenData Explorer API
-  version: 0.1.0
-  description: |
-    Read-only API for NYC 311 requests stored in PostgreSQL/PostGIS.
-    Guardrails: max date window 90 days, max limit 100, bbox area capped, pagination via next_token.
-    
-  # NOTE: The text above explains global behavior. Concrete, machine-readable limits are echoed
-  # below in the custom x-guardrails block to help your UI/tests stay in sync.
+  version: 1.0.0
+  description: Read-only API for NYC 311 requests stored in PostgreSQL/PostGIS.
 
-externalDocs:
-  description: More info about this API
-  url: https://docs.google.com/document/d/1AR3J0ytSMK1kDMYB8B1TtX35P-QR-cxcNCOXCtHx-zU/edit?usp=sharing
-  # NOTE: External docs can be any public URL (design docs, FAQ, etc.).
-
-# Base URL for API calls
 servers:
-  - url: https://api.example.com   # replace in deploys
-    # TIP: Consider adding a "stage" variable or multiple servers (staging, prod).
+  - url: http://localhost:8080
 
-# Group operations by tag for better organization in generated docs.
 tags:
   - name: Health
-    description: Health operations for API
   - name: Requests
-  - name: Stats
-    # TIP: Tags help group operations in generated docs.
 
-# Define available API paths and operations
 paths:
-  /healthz:
-    summary: Health operations for API
+  /actuator/health:
     get:
-      tags:
-        - Health
-      summary: Checks if API is alive
-      operationId: getHealthz
+      tags: [Health]
+      summary: Spring Boot actuator health endpoint
+      operationId: getActuatorHealth
       responses:
         '200':
-          description: OK
-          # Optional: declare an empty body explicitly with "content: {}" if your gateway requires it.
-        '400':
-          description: uh-oh
-          # NOTE: No schema/body defined—totally valid; this will be a header-only response unless you add content.
+          description: Actuator health response
 
   /api/311:
     get:
-      tags:
-        - Requests
-      summary: List 311 requests with filters and pagination
-      description: |
-        Returns a page of 311 requests filtered by date, borough, complaint type, and bounding box.
-        Guardrails:
-        - date range must be ≤ 90 days
-        - limit ≤ 100
-        - bbox area must be below configured maximum
+      tags: [Requests]
+      summary: List 311 requests
+      description: Returns the newest requests first, optionally filtered by time and bounding box.
       operationId: listRequests
       parameters:
-        - $ref: '#/components/parameters/date_from'
-        - $ref: '#/components/parameters/date_to'
-        - $ref: '#/components/parameters/borough'
-        - $ref: '#/components/parameters/complaint_type'
-        - $ref: '#/components/parameters/bbox'
-        - $ref: '#/components/parameters/limit'
-        - $ref: '#/components/parameters/next_token'
-      responses:
-        '200':
-          description: A page of results
-          headers:
-            Cache-Control:
-              description: Cache hints may be set for cacheable combinations.
-              schema: { type: string } # e.g., "public, max-age=60"
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/RequestsPage' }
-              examples:
-                manhattan_last7days_page1:
-                  summary: First page in a small Manhattan bbox (limit 3)
-                  value:
-                    items:
-                      - service_request_number: "12345678"
-                        created_date: "2025-10-23T14:12:03Z"
-                        closed_date: null
-                        complaint_type: "Noise - Residential"
-                        descriptor: "Loud Music/Party"
-                        borough: "MANHATTAN"
-                        latitude: 40.7112
-                        longitude: -73.9901
-                      - service_request_number: "12345679"
-                        created_date: "2025-10-23T14:45:10Z"
-                        closed_date: null
-                        complaint_type: "Illegal Parking"
-                        descriptor: "Blocked Hydrant"
-                        borough: "MANHATTAN"
-                        latitude: 40.7107
-                        longitude: -73.9893
-                      - service_request_number: "12345680"
-                        created_date: "2025-10-23T15:01:22Z"
-                        closed_date: "2025-10-24T06:18:00Z"
-                        complaint_type: "Noise - Commercial"
-                        descriptor: "Loud Talking"
-                        borough: "MANHATTAN"
-                        latitude: 40.7121
-                        longitude: -73.9897
-                    next_token: "eyJjZCI6IjIwMjUtMTAtMjNUMTU6MDE6MjJaIiwiaWQiOiIxMjM0NTY4MCJ9"
-                manhattan_last7days_page2:
-                  summary: Second page (end of results)
-                  value:
-                    items:
-                      - service_request_number: "12345681"
-                        created_date: "2025-10-23T15:12:45Z"
-                        closed_date: null
-                        complaint_type: "Street Condition"
-                        descriptor: "Pothole"
-                        borough: "MANHATTAN"
-                        latitude: 40.7119
-                        longitude: -73.9895
-                    next_token: null
-        '400':
-          description: Bad request (invalid parameters or guardrail violation)
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/Error' }
-              examples:
-                invalid_bbox:
-                  value: { error: "INVALID_BBOX", message: "Bounding box area exceeds allowed maximum.", details: { maxAreaDeg2: 1.0 } }
-                date_range_too_large:
-                  value: { error: "DATE_RANGE_TOO_LARGE", message: "date_to - date_from must be ≤ 90 days." }
-                limit_too_large:
-                  value: { error: "LIMIT_TOO_LARGE", message: "limit must be ≤ 100." }
-        '429':
-          description: Too Many Requests (rate limited)
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/Error' }
-        '500':
-          description: Server error
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/Error' }
-              examples:
-                rate_limited:
-                  value: { error: "RATE_LIMITED", message: "Too many requests. Please retry later." }
-
-  /api/311/stats:
-    get:
-      tags:
-        - Stats
-      summary: Aggregated counts over filters
-      description: |
-        Returns grouped counts with the same filters as /api/311.
-        Supported groupings: complaint_type, borough, day (UTC).
-      operationId: getRequestStats
-      parameters:
-        - $ref: '#/components/parameters/date_from'
-        - $ref: '#/components/parameters/date_to'
-        - $ref: '#/components/parameters/borough'
-        - $ref: '#/components/parameters/complaint_type'
-        - $ref: '#/components/parameters/bbox'
-        - name: group_by
+        - name: limit
           in: query
           required: false
+          description: Max records per page. Values are clamped to [1,100].
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 100
+        - name: since
+          in: query
+          required: false
+          description: Include requests where created_date >= since (ISO-8601).
           schema:
             type: string
-            enum: [complaint_type, borough, day]
-          description: Field to group by.
+            format: date-time
+            example: "2026-02-01T00:00:00Z"
+        - name: bbox
+          in: query
+          required: false
+          description: Bounding box in minLon,minLat,maxLon,maxLat format (WGS84).
+          schema:
+            type: string
+            example: "-74.00,40.70,-73.98,40.72"
       responses:
         '200':
-          description: Aggregated stats
-          headers:
-            Cache-Control:
-              schema: { type: string } # e.g., "public, max-age=120"
+          description: Request list
           content:
             application/json:
-              schema: { $ref: '#/components/schemas/StatsResponse' }
-              examples:
-                by_type:
-                  summary: Grouped by complaint type
-                  value:
-                    group_by: "complaint_type"
-                    rows:
-                      - { key: "Noise - Residential", count: 1243 }
-                      - { key: "Illegal Parking", count: 842 }
-                      - { key: "Noise - Commercial", count: 312 }
-                by_day:
-                  summary: Grouped by day (UTC)
-                  value:
-                    group_by: "day"
-                    rows:
-                      - { key: "2025-10-22", count: 185 }
-                      - { key: "2025-10-23", count: 201 }
-                      - { key: "2025-10-24", count: 178 }
-                      - { key: "2025-10-25", count: 162 }
-                      - { key: "2025-10-26", count: 144 }
-                      - { key: "2025-10-27", count: 171 }
-                      - { key: "2025-10-28", count: 190 }
+              schema:
+                $ref: '#/components/schemas/RequestsPage'
         '400':
-          description: Bad request
+          description: Invalid query parameters
           content:
             application/json:
-              schema: { $ref: '#/components/schemas/Error' }
-              examples:
-                invalid_group_by:
-                  value: { error: "INVALID_GROUP_BY", message: "group_by must be complaint_type, borough, or day" }
-        '429':
-          description: Too Many Requests (rate limited)
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/Error' }
-        '500':
-          description: Server error
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/Error' }
-
-x-guardrails:
-  maxDateWindowDays: 90       # Enforce in code and document here for clients
-  maxLimit: 100               # Upper bound for "limit"
-  maxBboxAreaDeg2: 1.0        # Approx area guardrail in degrees^2 (min/max lon/lat product)
+              schema:
+                $ref: '#/components/schemas/Error'
 
 components:
-  parameters:
-    date_from:
-      name: date_from
-      in: query
-      required: false
-      description: ISO-8601 datetime (inclusive). Must be before or on date_to and within the max window.
-      schema: { type: string, format: date-time }
-      example: "2025-10-22T00:00:00Z"
-    date_to:
-      name: date_to
-      in: query
-      required: false
-      description: ISO-8601 datetime (exclusive).
-      schema: { type: string, format: date-time }
-      example: "2025-10-29T00:00:00Z"
-    borough:
-      name: borough
-      in: query
-      required: false
-      description: Filter by borough (repeat parameter for multiple).
-      style: form
-      explode: true
-      schema:
-        type: array
-        items:
-          type: string
-          enum: [MANHATTAN, BROOKLYN, QUEENS, BRONX, STATEN ISLAND]
-      # NOTE: style=form + explode=true => ?borough=A&borough=B
-    complaint_type:
-      name: complaint_type
-      in: query
-      required: false
-      description: Filter by complaint type (repeat parameter for multiple).
-      style: form
-      explode: true
-      schema:
-        type: array
-        items: { type: string }
-      # TIP: Consider enum or pattern if you want to constrain allowed types.
-    bbox:
-      name: bbox
-      in: query
-      required: false
-      description: >
-        Bounding box "minLon,minLat,maxLon,maxLat" (WGS84/SRID 4326). Subject to area caps.
-      schema:
-        type: string
-        pattern: "^-?\\d{1,3}\\.\\d+,-?\\d{1,2}\\.\\d+,-?\\d{1,3}\\.\\d+,-?\\d{1,2}\\.\\d+$"
-      example: "-74.00,40.70,-73.98,40.72"
-      # NOTE: Pattern enforces four decimal numbers separated by commas. Server should still validate ranges.
-    limit:
-      name: limit
-      in: query
-      required: false
-      description: Max records per page (≤ 100). Defaults to 50.
-      schema:
-        type: integer
-        minimum: 1
-        maximum: 100
-        default: 50
-      # TIP: Consider server-side hard cap regardless of client-provided value.
-    next_token:
-      name: next_token
-      in: query
-      required: false
-      description: Opaque cursor for the next page (returned by previous call).
-      schema: { type: string }
-      # NOTE: Clients should treat token as opaque—don’t parse it.
-
-  # Defines the shapes of the returned JSONs from the API requests
   schemas:
-    # One single service request (one row/item)
-    Request:
+    RequestItem:
       type: object
       additionalProperties: false
-      required:
-        - service_request_number
-        - created_date
-        - complaint_type
+      required: [service_request_number, created_date]
       properties:
-        service_request_number: { type: string }
-        created_date: { type: string, format: date-time }
-        closed_date: { type: string, format: date-time, nullable: true }
-        complaint_type: { type: string }
-        descriptor: { type: string, nullable: true }
-        borough: { type: string, nullable: true }
-        latitude: { type: number, format: double, nullable: true }
-        longitude: { type: number, format: double, nullable: true }
-      # TIP: Add more fields as your DB schema stabilizes (e.g., normalized complaint type codes).
+        service_request_number:
+          type: string
+        created_date:
+          type: string
+          format: date-time
+        closed_date:
+          type: string
+          format: date-time
+          nullable: true
+        status:
+          type: string
+          nullable: true
+        agency:
+          type: string
+          nullable: true
+        complaint_type:
+          type: string
+          nullable: true
+        descriptor:
+          type: string
+          nullable: true
+        borough:
+          type: string
+          nullable: true
+        latitude:
+          type: number
+          format: double
+          nullable: true
+        longitude:
+          type: number
+          format: double
+          nullable: true
 
-    # Paginated page of results, containing array of Request and next token for the next page
     RequestsPage:
       type: object
       additionalProperties: false
-      required: [items]
+      required: [items, next_token]
       properties:
         items:
           type: array
-          items: { $ref: '#/components/schemas/Request' }
+          items:
+            $ref: '#/components/schemas/RequestItem'
         next_token:
           type: string
           nullable: true
-      # NOTE: When "next_token" is null/omitted, there are no more pages.
-
-    # Single row in a stats table, keyed by group
-    StatRow:
-      type: object
-      additionalProperties: false
-      required: [key, count]
-      properties:
-        key: { type: string }
-        count:
-          type: integer
-          minimum: 0  # ADDED: counts cannot be negative
-
-    # Stats result set
-    StatsResponse:
-      type: object
-      additionalProperties: false
-      required: [group_by, rows]
-      properties:
-        group_by:
-          type: string
-          enum: [borough, complaint_type, day]  # ADDED: enumerate valid values for stronger contract
-        rows:
-          type: array
-          items: { $ref: '#/components/schemas/StatRow' }
-      # TIP: Returning an empty "rows" array is OK when no data matches filters.
 
     Error:
       type: object
       additionalProperties: false
-      required: [error, message]
+      required: [error]
       properties:
-        error: { type: string, description: 'Short code (e.g., INVALID_BBOX)' }
-        message: { type: string, description: 'Human-readable explanation' }
-        details:
-          type: object
-          additionalProperties: true
-  
+        error:
+          type: string
