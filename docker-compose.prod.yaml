@@ -1,5 +1,3 @@
-version: "3.9"
-
 services:
   db:
     image: postgis/postgis:16-3.4
@@ -19,8 +17,8 @@ services:
 
   backend:
     container_name: nyc311-backend
-    # Backend image built locally & pushed to ECR
-    image: 272117125371.dkr.ecr.us-east-2.amazonaws.com/nyc311-backend:latest
+    build: .
+    image: nyc311-backend:prod
     depends_on:
       db:
         condition: service_healthy          # wait for DB to be ready
